@@ -100,5 +100,6 @@ if __name__ == "__main__":
         print(f"\n❌ Error: {e}")
         import traceback
         traceback.print_exc()
-        print("\n💡 Make sure to set your OPENAI_API_KEY environment variable")
+        print("\n💡 Make sure to set your GOOGLE_API_KEY environment variable")
+        print("   Get your API key from: https://makersuite.google.com/app/apikey")
 

@@ -14,12 +14,11 @@ from datetime import datetime
 from langgraph.graph import StateGraph, END
 
 # LangChain imports
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from openai import RateLimitError, APIError
 
 # Load environment variables
 try:
@@ -149,14 +148,14 @@ class TutoringLLM:
     """LangChain components for LLM interactions"""
     
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
         if not self.api_key:
-            raise ValueError("OpenAI API key is required! Set OPENAI_API_KEY environment variable.")
+            raise ValueError("Google API key is required! Set GOOGLE_API_KEY environment variable.")
         
-        self.llm = ChatOpenAI(
-            model="gpt-3.5-turbo",
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
             temperature=0.7,
-            openai_api_key=self.api_key
+            google_api_key=self.api_key
         )
         self.output_parser = StrOutputParser()
     
@@ -169,35 +168,30 @@ class TutoringLLM:
         try:
             question = chain.invoke({"prompt": prompt})
             return question.strip()
-        except RateLimitError as e:
+        except Exception as e:
             error_msg = str(e)
-            if "insufficient_quota" in error_msg or "quota" in error_msg.lower():
+            if "quota" in error_msg.lower() or "QUOTA_EXCEEDED" in error_msg:
                 raise ValueError(
-                    "❌ OpenAI API Quota Exceeded\n"
-                    "Your OpenAI account has insufficient quota or credits.\n"
+                    "❌ Google API Quota Exceeded\n"
+                    "Your Google account has insufficient quota or credits.\n"
                     "Please:\n"
-                    "1. Check your billing at https://platform.openai.com/account/billing\n"
+                    "1. Check your billing at https://console.cloud.google.com/billing\n"
                     "2. Add credits to your account\n"
                     "3. Verify your API key is valid and active\n\n"
                     f"Error details: {error_msg}"
                 )
-            else:
+            elif "rate" in error_msg.lower() or "RATE_LIMIT" in error_msg:
                 raise ValueError(
-                    f"❌ OpenAI API Rate Limit Error\n"
+                    f"❌ Google API Rate Limit Error\n"
                     f"Please wait a moment and try again.\n"
                     f"Error: {error_msg}"
                 )
-        except APIError as e:
-            raise ValueError(
-                f"❌ OpenAI API Error\n"
-                f"Please check your API key and account status.\n"
-                f"Error: {str(e)}"
-            )
-        except Exception as e:
-            raise ValueError(
-                f"❌ Error generating question\n"
-                f"Unexpected error: {str(e)}"
-            )
+            else:
+                raise ValueError(
+                    f"❌ Google API Error\n"
+                    f"Please check your API key and account status.\n"
+                    f"Error: {error_msg}"
+                )
     
     def evaluate_answer(self, question: str, correct_answer: str, student_answer: str, topic: str) -> Dict:
         """Evaluate student's answer"""
@@ -207,20 +201,18 @@ class TutoringLLM:
         
         try:
             response = chain.invoke({"prompt": prompt})
-        except RateLimitError as e:
-            error_msg = str(e)
-            if "insufficient_quota" in error_msg or "quota" in error_msg.lower():
-                raise ValueError(
-                    "❌ OpenAI API Quota Exceeded\n"
-                    "Your OpenAI account has insufficient quota or credits.\n"
-                    "Please check your billing at https://platform.openai.com/account/billing"
-                )
-            else:
-                raise ValueError(f"❌ OpenAI API Rate Limit Error: {error_msg}")
-        except APIError as e:
-            raise ValueError(f"❌ OpenAI API Error: {str(e)}")
         except Exception as e:
-            raise ValueError(f"❌ Error evaluating answer: {str(e)}")
+            error_msg = str(e)
+            if "quota" in error_msg.lower() or "QUOTA_EXCEEDED" in error_msg:
+                raise ValueError(
+                    "❌ Google API Quota Exceeded\n"
+                    "Your Google account has insufficient quota or credits.\n"
+                    "Please check your billing at https://console.cloud.google.com/billing"
+                )
+            elif "rate" in error_msg.lower() or "RATE_LIMIT" in error_msg:
+                raise ValueError(f"❌ Google API Rate Limit Error: {error_msg}")
+            else:
+                raise ValueError(f"❌ Google API Error: {error_msg}")
         
         # Parse JSON response
         try:
@@ -259,20 +251,18 @@ class TutoringLLM:
         try:
             explanation = chain.invoke({"prompt": prompt})
             return explanation.strip()
-        except RateLimitError as e:
-            error_msg = str(e)
-            if "insufficient_quota" in error_msg or "quota" in error_msg.lower():
-                raise ValueError(
-                    "❌ OpenAI API Quota Exceeded\n"
-                    "Your OpenAI account has insufficient quota or credits.\n"
-                    "Please check your billing at https://platform.openai.com/account/billing"
-                )
-            else:
-                raise ValueError(f"❌ OpenAI API Rate Limit Error: {error_msg}")
-        except APIError as e:
-            raise ValueError(f"❌ OpenAI API Error: {str(e)}")
         except Exception as e:
-            raise ValueError(f"❌ Error generating explanation: {str(e)}")
+            error_msg = str(e)
+            if "quota" in error_msg.lower() or "QUOTA_EXCEEDED" in error_msg:
+                raise ValueError(
+                    "❌ Google API Quota Exceeded\n"
+                    "Your Google account has insufficient quota or credits.\n"
+                    "Please check your billing at https://console.cloud.google.com/billing"
+                )
+            elif "rate" in error_msg.lower() or "RATE_LIMIT" in error_msg:
+                raise ValueError(f"❌ Google API Rate Limit Error: {error_msg}")
+            else:
+                raise ValueError(f"❌ Google API Error: {error_msg}")
     
     def decide_next_action(
         self, 
@@ -291,18 +281,18 @@ class TutoringLLM:
         
         try:
             action = chain.invoke({"prompt": prompt}).strip().lower()
-        except RateLimitError as e:
+        except Exception as e:
             error_msg = str(e)
-            if "insufficient_quota" in error_msg or "quota" in error_msg.lower():
+            if "quota" in error_msg.lower() or "QUOTA_EXCEEDED" in error_msg:
                 raise ValueError(
-                    "❌ OpenAI API Quota Exceeded\n"
-                    "Your OpenAI account has insufficient quota or credits.\n"
-                    "Please check your billing at https://platform.openai.com/account/billing"
+                    "❌ Google API Quota Exceeded\n"
+                    "Your Google account has insufficient quota or credits.\n"
+                    "Please check your billing at https://console.cloud.google.com/billing"
                 )
+            elif "rate" in error_msg.lower() or "RATE_LIMIT" in error_msg:
+                raise ValueError(f"❌ Google API Rate Limit Error: {error_msg}")
             else:
-                raise ValueError(f"❌ OpenAI API Rate Limit Error: {error_msg}")
-        except APIError as e:
-            raise ValueError(f"❌ OpenAI API Error: {str(e)}")
+                raise ValueError(f"❌ Google API Error: {error_msg}")
         except Exception as e:
             raise ValueError(f"❌ Error deciding next action: {str(e)}")
         
@@ -765,9 +755,10 @@ def main():
         # Handle API quota/rate limit errors with user-friendly messages
         print(f"\n{e}")
         print("\n💡 Troubleshooting Tips:")
-        print("1. Verify your OpenAI API key is set: echo $OPENAI_API_KEY")
-        print("2. Check your OpenAI account billing: https://platform.openai.com/account/billing")
-        print("3. Ensure you have sufficient credits/quota in your account")
+        print("1. Verify your Google API key is set: echo $GOOGLE_API_KEY")
+        print("2. Get your API key from: https://makersuite.google.com/app/apikey")
+        print("3. Check your Google account billing: https://console.cloud.google.com/billing")
+        print("4. Ensure you have sufficient credits/quota in your account")
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback

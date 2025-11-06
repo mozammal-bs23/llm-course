@@ -1,14 +1,15 @@
 # AI Tutoring Assistant Requirements
-# LangGraph + LangChain + OpenAI Integration
+# LangGraph + LangChain + Google Gemini Integration
 
-# Core LangGraph and LangChain
+# Core LangGraph and LangChain (v0.3.x ecosystem for compatibility)
 langgraph>=0.0.40
-langchain>=0.1.0
-langchain-openai>=0.0.5
+langchain>=0.3.0,<1.0.0
+langchain-core>=0.3.37,<0.4.0
+langchain-google-genai>=2.0.0
 langchain-community>=0.0.20
 
-# OpenAI
-openai>=1.10.0
+# Google Generative AI
+google-generativeai>=0.3.0
 
 # Data validation and models
 pydantic>=2.0.0
