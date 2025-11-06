@@ -1,0 +1,22 @@
+# AI Tutoring Assistant Requirements
+# LangGraph + LangChain + OpenAI Integration
+
+# Core LangGraph and LangChain
+langgraph>=0.0.40
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-community>=0.0.20
+
+# OpenAI
+openai>=1.10.0
+
+# Data validation and models
+pydantic>=2.0.0
+typing-extensions>=4.5.0
+
+# Environment management
+python-dotenv>=1.0.0
+
+# JSON handling (built-in, but listed for clarity)
+# json - built-in module
+

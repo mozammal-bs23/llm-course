@@ -1,0 +1,9 @@
+# Environment variables
+.env
+
+# Class directories
+Class */
+
+# Documentation files
+PRD.md
+requirement.md
